@@ -12,7 +12,7 @@ check_live_every_sec: 60          # cat de des verifica daca a pornit un live no
 backfill_from_start: true         # proceseaza si ce s-a transmis deja din live (de la inceput)
 backfill_max_hours: 12            # cat de mult in urma (YouTube tine max ~12h DVR)
 process_recent_vods: 0            # cate VOD-uri recente (live-uri terminate) sa proceseze la pornire
-live_title_filter: "(?i)gta"      # proceseaza doar live-urile cu "GTA" in titlu ("" = toate live-urile)
+live_title_filter: "(?i)gta|maraton|marathon"   # proceseaza doar live-urile cu GTA sau MARATON in titlu ("" = toate live-urile)
 vod_max_hours: 12                 # limita pentru un VOD
 chunk_minutes: 5                  # bucati de procesare
 video_max_height: 1080            # 1080 sau 720
