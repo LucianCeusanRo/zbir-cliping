@@ -316,8 +316,10 @@ def poster():
     while not STOP.is_set():
         c = cfg()
         auto = bool(c.get("auto_post", False))
-        STATUS["next_post_at"] = 0
+        # NOTE: next_post_at is only cleared in the branches that really have no next post;
+        # clearing it every loop made the dashboard flicker "acum" between two polls.
         if POST_PAUSED.is_set():
+            STATUS["next_post_at"] = 0
             STATUS["poster"] = "pauza"; sleep_until(STOP, 5); continue
         b = backoff()
         if b.get("until", 0) > time.time():
@@ -326,12 +328,15 @@ def poster():
             sleep_until(STOP, 10); continue
         clip = db.next_clip_to_post(c.get("post_order", "viral_first"), auto=auto, min_viral=int(c.get("auto_post_min_viral", 40)))
         if not clip:
+            STATUS["next_post_at"] = 0
             STATUS["poster"] = "nimic de postat" + (" (auto-postare ON)" if auto else " (apasa Posteaza pe un clip)")
             sleep_until(STOP, 5); continue
         manual = clip["status"] == "queued"
         if not manual and datetime.now().hour in (c.get("quiet_hours") or []):
+            STATUS["next_post_at"] = 0
             STATUS["poster"] = "ore de liniste"; sleep_until(STOP, 60); continue
         if db.posts_since(midnight()) >= c.get("daily_post_cap", 45):
+            STATUS["next_post_at"] = 0
             STATUS["poster"] = f"limita zilnica atinsa ({c.get('daily_post_cap', 45)})"; sleep_until(STOP, 30); continue
         # spacing: approved clips wait at least post_min_gap_minutes, auto ones the random 30-45 min interval
         # one post at a time; auto posts: random interval between min/max + jitter, so it never looks scheduled
@@ -348,6 +353,8 @@ def poster():
             sleep_until(STOP, min(5, next_at - time.time())); continue
         if not Path(clip["file"]).exists():
             db.x("UPDATE clips SET status='failed', error='fisierul video lipseste' WHERE id=?", (clip["id"],)); continue
+        STATUS["next_post_at"] = 0
+        STATUS["poster"] = "postez acum"
         posted = post_one(clip)
         next_at = 0
         STATUS["poster"] = "astept"
