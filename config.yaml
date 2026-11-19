@@ -1,0 +1,100 @@
+# ============================================================
+#  ZBIR CLIPPER - configurare (editeaza doar valorile)
+# ============================================================
+
+# --- SURSA ---------------------------------------------------
+# Canalul de YouTube urmarit. Programul verifica singur cand e LIVE.
+channel_url: "https://www.youtube.com/@zbir"
+# Live-uri/VOD-uri extra de procesat la pornire (optional).
+extra_urls:
+  - "https://www.youtube.com/watch?v=sigWeXgcJjI"
+check_live_every_sec: 60          # cat de des verifica daca a pornit un live nou
+backfill_from_start: true         # proceseaza si ce s-a transmis deja din live (de la inceput)
+backfill_max_hours: 12            # cat de mult in urma (YouTube tine max ~12h DVR)
+process_recent_vods: 0            # cate VOD-uri recente (live-uri terminate) sa proceseze la pornire
+live_title_filter: "(?i)gta"      # proceseaza doar live-urile cu "GTA" in titlu ("" = toate live-urile)
+vod_max_hours: 12                 # limita pentru un VOD
+chunk_minutes: 5                  # bucati de procesare
+video_max_height: 1080            # 1080 sau 720
+
+# Daca YouTube cere "Sign in to confirm you're not a bot":
+#   pune numele browserului in care esti logat pe YouTube: chrome / edge / firefox
+#   (sau cale catre un fisier cookies.txt in youtube_cookies_file)
+youtube_cookies_from_browser: ""
+youtube_cookies_file: ""
+
+# --- TRANSCRIERE ---------------------------------------------
+whisper_model: "large-v3"         # large-v3 (cel mai bun, RTX 4060 Ti ok) / medium / small
+whisper_device: "auto"            # auto / cuda / cpu
+whisper_compute_type: "auto"      # auto -> float16 pe GPU, int8 pe CPU
+language: "ro"                    # FORTAT pe romana (nu auto-detect)
+initial_prompt: "Zbir, live, GTA 6, frate, bă, băi, ce faci, hai, gata, mamă, nu se poate, giveaway, PS5, Vice City, Lucia, Jason."
+
+# --- SELECTIE MOMENTE (cat mai multe) -------------------------
+clip_min_sec: 20
+clip_max_sec: 60
+clip_target_sec: 35
+clips_per_chunk_max: 3            # maxim momente alese la 5 minute de stream
+min_score: 0.9                    # prag (mai mic = mai multe clipuri)
+min_gap_between_clips_sec: 20     # clipuri care nu se suprapun
+use_llm: true                     # se activeaza doar daca setezi LLM_API_KEY (vezi README)
+llm_min_score: 5                  # 0-10, clipurile cu scor LLM sub prag sunt aruncate
+llm_fix_transcript: true          # LLM-ul corecteaza greselile de transcriere inainte de subtitrare
+
+# --- RANDARE ---------------------------------------------------
+layout: "split"                   # split = camera sus + joc jos ; blur = tot ecranul pe fundal blurat ; fill = crop centru
+auto_cam: true                    # detecteaza fata lui Zbir; daca nu e camera -> layout blur automat
+# zona camerei lui Zbir din stream (fractii x, y, latime, inaltime din cadrul 16:9)
+cam_box: [0.0, 0.118, 0.238, 0.238]
+encoder: "auto"                   # auto -> h264_nvenc daca exista, altfel libx264
+caption_font: "Montserrat Black"   # fonturi incluse: Montserrat Black, Anton, Bebas Neue, Archivo Black, Poppins Black, Bangers (vezi samples/font_comparatie.jpg)
+caption_size: 108
+caption_words_per_line: 3
+hook_seconds: 2.5
+credit_text: "ZBIR LIVE PE YOUTUBE"
+censor_swears: true              # true = injuraturile apar cu *** in subtitrare (sunetul ramane). TikTok le impinge mai putin altfel
+
+# --- POSTARE TIKTOK -------------------------------------------
+auto_post: false                  # false = tu apesi "Posteaza" in aplicatie pe fiecare clip; true = posteaza singur cele mai bune
+manual_min_gap_minutes: 3         # pauza minima intre doua clipuri aprobate de tine
+hashtags: ["#zbirgta6", "#zbir", "#gta6"]   # puse MEREU; #zbirgta6 e obligatoriu si mereu PRIMUL hashtag
+extra_hashtags: ["#gta6romania", "#fyp", "#pentrutine", "#viral", "#romania", "#funny"]   # se aleg aleator cateva, pentru varietate
+hashtags_max: 5                     # cate hashtag-uri in total pe clip (inclusiv #zbirgta6)
+recut_sources_max_gb: 15            # spatiu maxim pentru sursele folosite la "Refa clipul" (cele vechi se sterg)
+caption_template: "{title} {hashtags}"
+post_interval_min_minutes: 20     # pauza minima intre postari automate (ritm Normal)
+post_interval_max_minutes: 30     # pauza maxima (aleator intre min si max)
+post_jitter_minutes: 4            # +/- cateva minute aleator, ca postarile sa nu para programate
+post_preset: "normal"             # sigur (20/zi, 40-60 min) / normal (45/zi, 20-30 min) / agresiv (60/zi, 15-20 min)
+daily_post_cap: 45                # maxim postari pe zi (anti-spam; mai mult = risc mai mare de limitare TikTok)
+quiet_hours: []                   # ex: [3, 4, 5, 6] = nu posta intre 03:00 si 06:59
+post_order: "viral_first"         # viral_first = cea mai mare sansa viral % prima ; newest_first = cele mai noi
+auto_post_min_viral: 40           # Auto-postare posteaza doar clipuri cu sansa viral >= 40% (cele aprobate de tine cu Posteaza trec mereu)
+dedupe_similarity: 0.8            # clipuri cu text aproape identic (>=80%) nu se mai fac / nu se posteaza de doua ori
+visibility: "public"              # public / private (pentru test)
+browser_channel: "chrome"         # chrome / msedge / chromium
+headless: false                   # lasa false: TikTok blocheaza mai des browserele ascunse
+
+# --- APLICATIE ------------------------------------------------
+dashboard_port: 8777              # aplicatia se deschide la http://127.0.0.1:8777
+
+# ---------- Efecte virale (se pot schimba si din aplicatie: Setari -> Efecte) ----------
+effects:
+  emoji: true          # emoji-uri care apar langa subtitrare (Twemoji, CC-BY 4.0)
+  pop: true            # cuvantul spus "sare"
+  keyword_color: true  # culoare pentru cuvintele cheie (rosu = nervi, verde = ras ...)
+  zoom: true           # punch-in pe tipete / momente tari
+  shake: true          # tremurat usor la rage
+  boost: true          # volum mai tare pe momentele tari (limitator + -14 LUFS, fara distorsiuni)
+  boost_db: 4.0
+  sfx: true            # sunete meme pe varfuri (generate de noi -> fara copyright)
+  sfx_volume: 0.45
+  progress_bar: false  # bara de progres jos
+
+# --- DISC / CURATENIE ------------------------------------------
+# Folderul de date (clipuri, baza de date, contul TikTok) se alege din Setari -> "Alege folderul".
+delete_after_post: false          # sterge fisierul video la o zi dupa ce s-a postat (ramane miniatura + linkul)
+delete_after_post_days: 1
+keep_raw_chunks_hours: 0          # 0 = bucatile brute de stream se sterg imediat dupa procesare
+skipped_retention_days: 7         # clipurile sarite se sterg de pe disc dupa N zile (0 = niciodata)
+disk_budget_gb: 150               # maxim GB pentru folderul de date; peste, sterge intai ce e vechi/postat (0 = fara limita)

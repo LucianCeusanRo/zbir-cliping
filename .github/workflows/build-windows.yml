@@ -1,0 +1,35 @@
+name: build Zbir Cliping (Windows)
+on:
+  workflow_dispatch:
+  push:
+    tags: ["v*"]
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Build launcher exe (icon + version info)
+        shell: cmd
+        run: |
+          python -m pip install ziglang
+          cd launcher
+          python -m ziglang cc -target x86_64-windows-gnu -O2 -s -municode -Wl,--subsystem,windows launcher.c launcher.rc -o "..\Zbir Cliping.exe" -lshell32 -luser32
+      - name: Smoke test (install deps CPU-only, run unit tests)
+        shell: cmd
+        run: |
+          python -m pip install -r requirements.txt
+          python -m zbirclip selftest --quick
+      - name: Package
+        shell: pwsh
+        run: |
+          Remove-Item -Recurse -Force .git -ErrorAction SilentlyContinue
+          Compress-Archive -Path * -DestinationPath "Zbir-Cliping.zip"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Zbir-Cliping
+          path: |
+            Zbir-Cliping.zip
+            Zbir Cliping.exe
