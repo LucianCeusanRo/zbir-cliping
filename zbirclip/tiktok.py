@@ -204,6 +204,49 @@ def latest_video_url():
         return None
 
 
+MANDATORY_TAG = "#zbirgta6"
+
+
+def _linked_hashtags(ed):
+    """Hashtags TikTok turned into real (clickable) tags: Draft.js wraps them in span.mention."""
+    try:
+        return {t.strip().lower() for t in ed.locator("span.mention, [data-testid='mentionText']").all_inner_texts()}
+    except Exception:
+        return set()
+
+
+def _type_hashtag(frame, page, tag):
+    """Type a hashtag and pick it from TikTok's suggestion list; a typed space alone leaves it as plain text."""
+    page.keyboard.type(tag, delay=70)
+    want = tag.lower()
+    items = frame.locator(".hashtag-suggestion-item, [role='option']")
+    end = time.time() + 6
+    while time.time() < end:
+        page.wait_for_timeout(400)
+        try:
+            n = items.count()
+        except Exception:
+            n = 0
+        for i in range(min(n, 12)):
+            it = items.nth(i)
+            try:
+                topic = it.locator(".hash-tag-topic").first
+                name = (topic.inner_text(timeout=500) if topic.count() else it.inner_text(timeout=500).split("\n")[0]).strip().lower()
+            except Exception:
+                continue
+            if name == want:
+                try:
+                    it.click(timeout=2000)
+                except Exception:
+                    page.keyboard.press("Enter")
+                page.wait_for_timeout(500)
+                return True                      # TikTok adds the trailing space itself
+    # no exact suggestion (brand-new tag): Enter selects the focused suggestion only if it is ours, else just space
+    page.keyboard.type(" ", delay=30)
+    log.warning("hashtag %s nu a aparut in sugestii; ramane text", tag)
+    return False
+
+
 def _upload(video: Path, caption: str, visibility=None):
     from playwright.sync_api import sync_playwright, TimeoutError as PWTimeout
     visibility = visibility or cfg().get("visibility", "public")
@@ -228,13 +271,17 @@ def _upload(video: Path, caption: str, visibility=None):
             ed.click()
             page.keyboard.press("Control+A"); page.keyboard.press("Delete")
             for part in caption.split(" "):
-                if part.startswith("#"):
-                    page.keyboard.type(part, delay=60)
-                    page.wait_for_timeout(1800)          # hashtag suggestion popup
-                    page.keyboard.type(" ", delay=30)
+                if not part:
+                    continue
+                if part.startswith("#") and len(part) > 1:
+                    _type_hashtag(frame, page, part)
                 else:
                     page.keyboard.type(part + " ", delay=25)
             page.wait_for_timeout(800)
+            linked = _linked_hashtags(ed)
+            if MANDATORY_TAG.lower() not in linked:
+                _shot(page, "hashtag_not_linked")
+                return False, f"{MANDATORY_TAG} nu a devenit hashtag clickabil (doar text) - nu am postat"
             if visibility != "public":
                 try:
                     frame.get_by_text(re.compile("Everyone|Toată lumea|Oricine")).first.click(timeout=3000)
