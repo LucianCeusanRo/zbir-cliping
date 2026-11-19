@@ -692,7 +692,7 @@ class T15CamLock(unittest.TestCase):
         self.assertIn("boxblur", v)                          # wide (2 people) -> fit, never centre-crop the sides
         v2 = render.video_filter("split", 1920, 1080, "/tmp/x.ass", [0.0, 0.118, 0.238, 0.238])
         self.assertNotIn("[cbg]", v2)
-        self.assertIn("fontsdir='" + str(util.FONTS).replace(":", "\\:"), v2)          # the folder, not the preset table
+        self.assertIn("fontsdir='" + str(util.FONTS).replace("\\", "/").replace(":", "\\:"), v2)          # the folder, not the preset table
 
 
 class T16Backoff(unittest.TestCase):

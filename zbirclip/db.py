@@ -28,14 +28,19 @@ CREATE INDEX IF NOT EXISTS ix_clips_v ON clips(video_id, start);
 def _open_checked(path):
     """Open the db; if it is corrupt, keep it aside and restore the last hourly backup (or start fresh)."""
     def ok(p):
+        c = None
         try:
             c = sqlite3.connect(p, check_same_thread=False, timeout=30)
             r = c.execute("PRAGMA quick_check").fetchone()[0]
             if r == "ok":
                 return c
-            c.close()
         except sqlite3.DatabaseError:
             pass
+        if c is not None:
+            try:
+                c.close()       # must close, otherwise Windows keeps the file locked and it can't be quarantined
+            except Exception:
+                pass
         return None
     c = ok(path)
     if c:
